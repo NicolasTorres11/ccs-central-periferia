@@ -1,95 +1,31 @@
 # Diagramas de Secuencia
 
-## Emergencia / Boton de Panico
+## Flujo 1 — Ingesta de Telemetria Rutinaria
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as App/Boton
-  participant APIM as API Management
-  participant E as CCS.Api.Emergency
-  participant R as Redis
-  participant SB as Service Bus actions-critical
-  participant D as CCS.Functions.Dispatcher
-  participant ACS as Communication Services
-  participant NH as Notification Hubs
-  participant SR as SignalR
-  participant WH as Webhook Autoridad
+Trigger: sensor del vehiculo emite senal cada 10 segundos. SLA: procesamiento asincrono (< 5 s aceptable).
 
-  U->>APIM: POST /emergency
-  APIM->>E: Request validado
-  E->>R: GET rules:{deviceId}:panic
-  R-->>E: Acciones activas
-  E->>SB: Publicar DispatchedAction critical
-  SB-->>D: Trigger mensaje critico
-  par Fan-out paralelo
-    D->>ACS: SMS/voz/email
-    D->>NH: Push propietario
-    D->>SR: Broadcast central
-    D->>WH: POST autoridad
-  end
-  D->>SB: Complete message
-```
+![Flujo 1 — Ingesta de Telemetria Rutinaria](../architectures/Diagrama%20de%20flujo%201.png)
 
-## Ingesta de Telemetria
+## Flujo 2 — Emergencia / Boton de Panico
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant S as Sensor Vehiculo
-  participant IoT as IoT Hub
-  participant EH as Event Hubs
-  participant I as CCS.Functions.Ingestion
-  participant C as Cosmos DB
-  participant AI as App Insights
+Trigger: boton fisico o app movil. SLA: end-to-end < 2 s.
 
-  S->>IoT: MQTT/AMQP telemetry
-  IoT->>EH: Route por deviceId
-  EH-->>I: Trigger batch
-  I->>I: Validar y enriquecer
-  I->>C: Upsert telemetry / vehicleState
-  I->>AI: Trace correlationId
-```
+![Flujo 2 — Emergencia / Boton de Panico (camino critico < 2s)](../architectures/Diagrama%20de%20flujo%202.png)
 
-## Evaluacion de Reglas
+## Flujo 3 — Evaluacion de Reglas sobre Telemetria
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant EH as Event Hubs
-  participant RE as CCS.Functions.Rules
-  participant R as Redis
-  participant C as Cosmos DB
-  participant SB as Service Bus actions
+Trigger: evento de telemetria que requiere evaluacion. SLA: < 5 s no critico, < 2 s critico.
 
-  EH-->>RE: Batch de telemetria
-  loop Por evento
-    RE->>R: GET rules:{deviceId}
-    R-->>RE: Reglas activas
-    RE->>C: Leer estado anterior
-    RE->>RE: Evaluar condiciones
-    alt Regla disparada
-      RE->>SB: Publicar accion
-      RE->>C: Actualizar evento/estado
-    end
-  end
-```
+![Flujo 3 — Evaluacion de Reglas sobre Telemetria](../architectures/Diagrama%20de%20flujo%203.png)
 
-## Administracion de Reglas
+## Flujo 4 — Despacho de Acciones / Notificacion a Interesados
 
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as App Propietario
-  participant APIM as API Management
-  participant A as CCS.Api.Admin
-  participant SQL as Azure SQL
-  participant R as Redis
+Trigger: mensaje en Service Bus topic `actions` o `actions-critical`. SLA: critico < 1 s, normal < 10 s.
 
-  U->>APIM: POST /rules
-  APIM->>A: Request autenticado
-  A->>SQL: Validar ownership + guardar regla
-  SQL-->>A: Commit OK
-  A->>R: Actualizar/invalidate rules:{deviceId}
-  A-->>U: 201/200
-```
+![Flujo 4 — Despacho de Acciones y Notificacion a Interesados](../architectures/Diagrama%20de%20flujo%204.png)
+
+## Flujo 5 — Configuracion de Reglas desde App Movil
+
+Trigger: propietario crea / edita / elimina regla. SLA: respuesta API < 500 ms, propagacion a cache < 1 s.
+
+![Flujo 5 — Configuracion de Reglas desde App Movil del Propietario](../architectures/Diagrama%20de%20flujo%205.png)

@@ -1,6 +1,7 @@
 # Arquitectura de la Central CCS
 
 ## Objetivo
+
 Disenar una central de procesamiento de senales vehiculares que permita:
 
 - Ejecutar acciones de emergencia en menos de 2 segundos.
@@ -10,69 +11,10 @@ Disenar una central de procesamiento de senales vehiculares que permita:
 
 ## Vista de Componentes
 
-```mermaid
-flowchart TB
-  subgraph Dispositivos
-    Sensor[Sensores GPS/temperatura/panico]
-    App[App movil conductor/propietario]
-  end
-
-  subgraph Ingesta
-    IoTHub[Azure IoT Hub]
-    APIM[API Management]
-    FrontDoor[Front Door + WAF]
-  end
-
-  subgraph Mensajeria
-    EventHubs[Event Hubs]
-    ServiceBus[Service Bus<br/>actions/actions-critical]
-  end
-
-  subgraph Procesamiento
-    Ingestion[CCS.Functions.Ingestion]
-    Rules[CCS.Functions.Rules]
-    Emergency[CCS.Api.Emergency]
-    Dispatcher[CCS.Functions.Dispatcher]
-    Admin[CCS.Api.Admin]
-    TelemetryApi[CCS.Api.Telemetry]
-  end
-
-  subgraph Datos
-    Sql[(Azure SQL)]
-    Cosmos[(Cosmos DB)]
-    Redis[(Azure Cache for Redis)]
-    Blob[(Blob Storage)]
-  end
-
-  subgraph Salidas
-    ACS[Communication Services]
-    NotificationHubs[Notification Hubs]
-    SignalR[SignalR]
-    Webhooks[Webhooks autoridades]
-  end
-
-  Sensor --> IoTHub --> EventHubs --> Ingestion --> Cosmos
-  EventHubs --> Rules --> ServiceBus
-  App --> FrontDoor --> APIM --> Emergency
-  APIM --> Admin
-  APIM --> TelemetryApi
-  Emergency --> Redis
-  Emergency --> ServiceBus
-  TelemetryApi --> EventHubs
-  Admin --> Sql
-  Admin --> Redis
-  Rules --> Redis
-  Rules --> Cosmos
-  ServiceBus --> Dispatcher
-  Dispatcher --> Sql
-  Dispatcher --> ACS
-  Dispatcher --> NotificationHubs
-  Dispatcher --> SignalR
-  Dispatcher --> Webhooks
-  Sensor -. video/snapshot .-> Blob
-```
+![Diagrama de Componentes — Arquitectura Azure cloud-native Central CCS](../architectures/Diagrama%20de%20Componentes.png)
 
 ## Camino Critico de Emergencia
+
 Para cumplir el SLA menor a 2 segundos, el panico usa un camino dedicado:
 
 ```text
@@ -81,18 +23,19 @@ App/Boton -> API Management -> CCS.Api.Emergency -> Redis -> Service Bus actions
 
 Presupuesto objetivo de latencia P95:
 
-| Paso | Latencia objetivo |
-|---|---:|
-| API Management + validacion | 50 ms |
-| Emergency API + validacion payload | 80 ms |
-| Consulta reglas en Redis | 10 ms |
-| Publicacion Service Bus `actions-critical` | 80 ms |
-| Trigger dispatcher | 150 ms |
-| Fan-out paralelo a canales externos | 800 ms |
-| Margen operativo | 830 ms |
-| Total objetivo | < 2.000 ms |
+| Paso                                       | Latencia objetivo |
+| ------------------------------------------ | ----------------: |
+| API Management + validacion                |             50 ms |
+| Emergency API + validacion payload         |             80 ms |
+| Consulta reglas en Redis                   |             10 ms |
+| Publicacion Service Bus `actions-critical` |             80 ms |
+| Trigger dispatcher                         |            150 ms |
+| Fan-out paralelo a canales externos        |            800 ms |
+| Margen operativo                           |            830 ms |
+| Total objetivo                             |        < 2.000 ms |
 
 ## Flujo de Telemetria
+
 La telemetria rutinaria usa una ruta asincrona y desacoplada:
 
 ```text
@@ -103,19 +46,20 @@ Esta separacion evita que picos de telemetria afecten el canal critico de panico
 
 ## Justificacion de Componentes
 
-| Componente | Uso | Justificacion |
-|---|---|---|
-| IoT Hub | Entrada MQTT/AMQP de sensores | Autenticacion por dispositivo, escalabilidad administrada y enrute a Event Hubs. |
-| Event Hubs | Bus de telemetria | Alto throughput y particionamiento por `deviceId`. |
-| Service Bus | Acciones a despachar | Topics, DLQ, reintentos y priorizacion mediante `actions-critical`. |
-| Azure Functions Premium | Workers de ingesta, reglas y despacho | Escalado independiente y sin cold starts relevantes para el SLA. |
-| Azure SQL | Maestros, reglas, contactos y auditoria | Consistencia ACID y consultas relacionales. |
-| Cosmos DB | Telemetria, eventos y estado vehicular | Escritura de alto volumen, TTL y particionamiento por `deviceId`. |
-| Redis | Reglas activas del camino critico | Lecturas sub-milisegundo para panico y motor de reglas. |
-| API Management | Publicacion de APIs | Seguridad, cuotas, versionado y OpenAPI. |
-| Application Insights | Observabilidad | Trazas con correlationId, metricas y alertas. |
+| Componente              | Uso                                     | Justificacion                                                                    |
+| ----------------------- | --------------------------------------- | -------------------------------------------------------------------------------- |
+| IoT Hub                 | Entrada MQTT/AMQP de sensores           | Autenticacion por dispositivo, escalabilidad administrada y enrute a Event Hubs. |
+| Event Hubs              | Bus de telemetria                       | Alto throughput y particionamiento por `deviceId`.                               |
+| Service Bus             | Acciones a despachar                    | Topics, DLQ, reintentos y priorizacion mediante `actions-critical`.              |
+| Azure Functions Premium | Workers de ingesta, reglas y despacho   | Escalado independiente y sin cold starts relevantes para el SLA.                 |
+| Azure SQL               | Maestros, reglas, contactos y auditoria | Consistencia ACID y consultas relacionales.                                      |
+| Cosmos DB               | Telemetria, eventos y estado vehicular  | Escritura de alto volumen, TTL y particionamiento por `deviceId`.                |
+| Redis                   | Reglas activas del camino critico       | Lecturas sub-milisegundo para panico y motor de reglas.                          |
+| API Management          | Publicacion de APIs                     | Seguridad, cuotas, versionado y OpenAPI.                                         |
+| Application Insights    | Observabilidad                          | Trazas con correlationId, metricas y alertas.                                    |
 
 ## Escalabilidad
+
 - Functions separadas por responsabilidad para escalar de forma independiente.
 - Particionamiento de telemetria por `deviceId`.
 - Cosmos con autoscale y TTL para datos efimeros.
@@ -123,6 +67,7 @@ Esta separacion evita que picos de telemetria afecten el canal critico de panico
 - Redis precargado con reglas activas para evitar consultas SQL en el camino caliente.
 
 ## Disponibilidad
+
 - Servicios Azure con soporte de zonas de disponibilidad donde aplique.
 - Cosmos DB con region secundaria.
 - Retries, circuit breaker y DLQ para canales externos.
