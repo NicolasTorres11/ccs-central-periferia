@@ -116,3 +116,5 @@ internal sealed record RuleDto(
     IReadOnlyList<RuleActionDto> Actions);
 
 internal sealed record RuleActionDto(ActionType ActionType, string TargetType, string TargetReference, int Order, bool IsCritical);
+
+public partial class Program;

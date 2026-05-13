@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "Aplicando scripts SQL contra el servidor definido en SQL_SERVER."
+echo "Este script no crea recursos en Azure; solo ejecuta SQL contra un destino ya disponible."
+
 : "${SQL_SERVER:?Debe definir SQL_SERVER. Ej: localhost,1433 o sql-ccs-prod.database.windows.net}"
 
 SQL_DATABASE="${SQL_DATABASE:-ccs_db}"

@@ -78,3 +78,5 @@ static void SeedEmergencyRules(IServiceProvider services)
 
     cache.SetRules(new DeviceId("DEV-SMOKE"), EventType.Panic, [rule]);
 }
+
+public partial class Program;

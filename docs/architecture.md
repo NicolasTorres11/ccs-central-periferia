@@ -128,3 +128,4 @@ Esta separacion evita que picos de telemetria afecten el canal critico de panico
 - Retries, circuit breaker y DLQ para canales externos.
 - Health checks y alertas por latencia, errores y acumulacion de mensajes.
 
+La matriz detallada de disponibilidad y escalabilidad esta en `docs/availability-scalability.md`.

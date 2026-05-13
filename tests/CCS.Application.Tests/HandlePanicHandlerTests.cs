@@ -47,6 +47,33 @@ public class HandlePanicHandlerTests
         Assert.Equal("invalid", result.Status);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenCorrelationIdIsMissing_ReturnsInvalid()
+    {
+        var handler = new HandlePanicHandler(new FakeRuleCache(), new FakePublisher());
+        var signal = new EmergencySignal("DEV-001", EventType.Panic, "PhysicalButton", null, DateTimeOffset.UtcNow);
+
+        var result = await handler.HandleAsync(new HandlePanicCommand(signal, ""));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("invalid", result.Status);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenRulesDoNotExist_PublishesCriticalDispatchWithoutActions()
+    {
+        var publisher = new FakePublisher();
+        var handler = new HandlePanicHandler(new FakeRuleCache(), publisher);
+        var signal = new EmergencySignal("DEV-001", EventType.DriverDistress, "MobileApp", null, DateTimeOffset.UtcNow);
+
+        var result = await handler.HandleAsync(new HandlePanicCommand(signal, "corr-empty"));
+
+        Assert.True(result.IsSuccess);
+        var dispatch = Assert.Single(publisher.Published);
+        Assert.Empty(dispatch.Actions);
+        Assert.Equal(EventType.DriverDistress, dispatch.EventType);
+    }
+
     private sealed class FakeRuleCache : IRuleCache
     {
         public IReadOnlyList<Rule> Rules { get; set; } = [];
@@ -68,4 +95,3 @@ public class HandlePanicHandlerTests
         }
     }
 }
-

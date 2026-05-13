@@ -2,6 +2,17 @@
 
 Solucion tecnica para la central de seguimiento vehicular CCS. El repositorio incluye documentacion de arquitectura, modelo ER, scripts de base de datos, Bicep documentado, contratos OpenAPI y una base .NET con pruebas automatizadas.
 
+## Como revisar el entregable
+
+1. Revisar la arquitectura en `docs/architecture.md` y los flujos en `docs/sequence-diagrams.md`.
+2. Revisar el despliegue propuesto en `docs/deployment-diagram.md`.
+3. Abrir el modelo ER de `database/model/ccs-er-model.dbml` en dbdiagram.io.
+4. Revisar el contrato local de APIs en `docs/openapi.yaml`.
+5. Validar la solucion con `dotnet test CCS.slnx --disable-build-servers -m:1`.
+6. Ejecutar las APIs locales si se desea probar manualmente los endpoints.
+
+Este repositorio no despliega recursos en Azure. Los Bicep, scripts SQL, politicas Cosmos y scripts Redis quedan como artefactos tecnicos revisables para la prueba.
+
 ## Estructura
 
 ```text
@@ -13,13 +24,28 @@ tests/      Pruebas automatizadas.
 scripts/    Scripts auxiliares locales.
 ```
 
+## Alcance local
+
+- Las APIs usan almacenamiento en memoria para facilitar la validacion local.
+- Los proyectos `CCS.Functions.*` simulan responsabilidades de Functions como clases .NET testeables.
+- `docs/openapi.yaml` es un contrato documental local; no ejecuta Functions ni publica servicios.
+- `scripts/deploy-infra.sh` solo imprime comandos de referencia para Bicep.
+- `scripts/apply-sql.sh` requiere un SQL Server existente definido por `SQL_SERVER`.
+- `scripts/bootstrap-local.sh` levanta dependencias locales con Docker Compose.
+
 ## Pruebas .NET
 
-El entorno local actual usa SDK .NET 10 para ejecutar la solucion. Los proyectos estan organizados con arquitectura por capas y pruebas sobre dominio, aplicacion e infraestructura.
+El entorno local actual usa SDK .NET 10 para ejecutar la solucion. Los proyectos estan organizados con arquitectura por capas y pruebas sobre dominio, aplicacion, infraestructura y endpoints HTTP de las APIs.
 
 ```bash
 dotnet restore CCS.slnx
 dotnet test CCS.slnx --disable-build-servers -m:1
+```
+
+Para generar cobertura local:
+
+```bash
+dotnet test CCS.slnx --disable-build-servers -m:1 --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 ```
 
 En este entorno, `dotnet test` puede requerir ejecucion fuera del sandbox por restricciones de MSBuild con named pipes.
@@ -45,6 +71,12 @@ curl -X POST http://localhost:5101/emergency \
     "gps": { "lat": 4.711, "lng": -74.072 },
     "timestamp": "2026-05-12T14:23:10Z"
   }'
+```
+
+Tambien puedes ejecutar el smoke test local mientras la API de emergencias esta arriba:
+
+```bash
+./scripts/smoke-test-emergency.sh
 ```
 
 ### Telemetria
@@ -96,9 +128,19 @@ database/model/ccs-er-model.dbml
 
 Los archivos Bicep estan en `infra/` como artefacto tecnico revisable. No se despliegan recursos reales desde este repositorio por defecto.
 
+Para ver los comandos de referencia sin ejecutar despliegues:
+
+```bash
+./scripts/deploy-infra.sh dev
+```
+
 ## Documentacion principal
 
 - `docs/architecture.md`
+- `docs/availability-scalability.md`
+- `docs/deployment-diagram.md`
 - `docs/sequence-diagrams.md`
 - `docs/er-model.md`
+- `docs/functions.md`
 - `docs/openapi.yaml`
+- `docs/test-coverage.md`

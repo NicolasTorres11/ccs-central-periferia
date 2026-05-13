@@ -30,5 +30,19 @@ public class ProcessTelemetryBatchTests
         Assert.True(result.IsSuccess);
         Assert.Equal("valid", result.Status);
     }
-}
 
+    [Fact]
+    public void Validate_WhenBatchExceedsLimit_ReturnsInvalid()
+    {
+        var useCase = new ProcessTelemetryBatch();
+        var messages = Enumerable
+            .Range(1, 101)
+            .Select(index => new TelemetryMessage($"DEV-{index:000}", DateTimeOffset.UtcNow, null, null, null))
+            .ToArray();
+
+        var result = useCase.Validate(messages);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("invalid", result.Status);
+    }
+}

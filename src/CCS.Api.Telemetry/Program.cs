@@ -51,3 +51,5 @@ internal sealed class InMemoryTelemetryBuffer
         _messages.AddRange(messages);
     }
 }
+
+public partial class Program;

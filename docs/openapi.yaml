@@ -1,38 +1,50 @@
 openapi: 3.0.3
 info:
-  title: CCS Central API
+  title: CCS Central - Contratos locales
   version: 1.0.0
   description: >
-    APIs de la central CCS para recepcion de emergencias, administracion de reglas,
-    consulta de vehiculos, gestion de propietarios e ingesta HTTP de telemetria.
+    Contrato OpenAPI documental para las APIs locales del entregable CCS.
+    Este archivo no ejecuta Functions, no publica recursos y no depende de una
+    plataforma externa. Sirve para revisar endpoints, payloads y respuestas.
 
 servers:
-  - url: https://api.ccs.example/v1
-    description: Produccion
-  - url: https://api-stg.ccs.example/v1
-    description: Staging
+  - url: http://localhost:5101
+    description: API local de emergencias
+  - url: http://localhost:5102
+    description: API local de telemetria
+  - url: http://localhost:5103
+    description: API local de administracion
 
 tags:
+  - name: Health
   - name: Emergency
-  - name: Rules
-  - name: Vehicles
-  - name: Owners
   - name: Telemetry
-
-security:
-  - oauth2: []
+  - name: Owners
+  - name: Vehicles
+  - name: Rules
 
 paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Estado de salud de la API local
+      description: Disponible en cada API local.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Servicio saludable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
   /emergency:
     post:
       tags: [Emergency]
-      summary: Reportar una emergencia o boton de panico
+      summary: Reportar una emergencia o senal de panico
       operationId: reportEmergency
-      security:
-        - oauth2: [emergency.write]
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
-        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -42,13 +54,14 @@ paths:
             examples:
               panic:
                 value:
-                  deviceId: DEV-001234
+                  deviceId: DEV-SMOKE
                   type: Panic
-                  source: PhysicalButton
+                  source: Button
                   gps:
-                    lat: 4.711
-                    lng: -74.072
-                  timestamp: '2026-05-12T14:23:10Z'
+                    lat: 4.65
+                    lng: -74.1
+                  timestamp: '2026-05-13T12:00:00Z'
+                  reason: panic-button
       responses:
         '202':
           description: Emergencia aceptada para despacho
@@ -58,186 +71,68 @@ paths:
                 $ref: '#/components/schemas/EmergencyAccepted'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '503':
-          $ref: '#/components/responses/ServiceUnavailable'
 
-  /rules:
+  /debug/dispatched-actions:
     get:
-      tags: [Rules]
-      summary: Listar reglas del propietario autenticado
-      operationId: listRules
-      security:
-        - oauth2: [rules.read]
-      parameters:
-        - name: vehicleId
-          in: query
-          schema:
-            type: string
-            format: uuid
-        - name: eventType
-          in: query
-          schema:
-            $ref: '#/components/schemas/EventType'
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
+      tags: [Emergency]
+      summary: Consultar acciones despachadas en memoria
+      description: Endpoint local de depuracion para validar el flujo sin Azure Service Bus.
+      operationId: listDebugDispatchedActions
       responses:
         '200':
-          description: Reglas paginadas
+          description: Acciones publicadas en memoria
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RulePage'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                type: array
+                items:
+                  $ref: '#/components/schemas/DispatchedAction'
+
+  /telemetry/ingest:
     post:
-      tags: [Rules]
-      summary: Crear regla
-      operationId: createRule
-      security:
-        - oauth2: [rules.write]
-      parameters:
-        - $ref: '#/components/parameters/CorrelationId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+      tags: [Telemetry]
+      summary: Ingestar lote de telemetria por HTTP
+      operationId: ingestTelemetry
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RuleCreate'
+              type: array
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/TelemetryMessage'
       responses:
-        '201':
-          description: Regla creada
+        '202':
+          description: Lote aceptado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Rule'
+                $ref: '#/components/schemas/TelemetryAccepted'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
 
-  /rules/{ruleId}:
-    parameters:
-      - name: ruleId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
+  /debug/telemetry:
     get:
-      tags: [Rules]
-      summary: Obtener regla por identificador
-      operationId: getRule
-      security:
-        - oauth2: [rules.read]
+      tags: [Telemetry]
+      summary: Consultar telemetria recibida en memoria
+      description: Endpoint local de depuracion para validar la ingesta sin Event Hubs ni Cosmos DB.
+      operationId: listDebugTelemetry
       responses:
         '200':
-          description: Regla encontrada
+          description: Mensajes de telemetria almacenados en memoria
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Rule'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      tags: [Rules]
-      summary: Actualizar regla
-      operationId: updateRule
-      security:
-        - oauth2: [rules.write]
-      parameters:
-        - $ref: '#/components/parameters/CorrelationId'
-        - name: If-Match
-          in: header
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RuleUpdate'
-      responses:
-        '200':
-          description: Regla actualizada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Rule'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-    delete:
-      tags: [Rules]
-      summary: Eliminar regla
-      operationId: deleteRule
-      security:
-        - oauth2: [rules.write]
-      responses:
-        '204':
-          description: Regla eliminada
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /vehicles:
-    get:
-      tags: [Vehicles]
-      summary: Listar vehiculos
-      operationId: listVehicles
-      security:
-        - oauth2: [vehicles.read]
-      parameters:
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
-      responses:
-        '200':
-          description: Vehiculos paginados
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/VehiclePage'
-
-  /vehicles/{vehicleId}/state:
-    get:
-      tags: [Vehicles]
-      summary: Obtener estado actual del vehiculo
-      operationId: getVehicleState
-      security:
-        - oauth2: [vehicles.read]
-      parameters:
-        - name: vehicleId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Estado actual
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/VehicleState'
-        '404':
-          $ref: '#/components/responses/NotFound'
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryMessage'
 
   /owners:
     post:
       tags: [Owners]
       summary: Crear propietario
       operationId: createOwner
-      security:
-        - oauth2: [owners.admin]
-      parameters:
-        - $ref: '#/components/parameters/CorrelationId'
       requestBody:
         required: true
         content:
@@ -254,102 +149,120 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /telemetry/ingest:
+  /vehicles:
+    get:
+      tags: [Vehicles]
+      summary: Listar vehiculos registrados localmente
+      operationId: listVehicles
+      responses:
+        '200':
+          description: Vehiculos registrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiclePage'
     post:
-      tags: [Telemetry]
-      summary: Ingesta HTTP de telemetria para dispositivos sin MQTT
-      operationId: ingestTelemetry
-      security:
-        - mtls: []
-      parameters:
-        - $ref: '#/components/parameters/CorrelationId'
-        - $ref: '#/components/parameters/IdempotencyKey'
+      tags: [Vehicles]
+      summary: Crear vehiculo
+      operationId: createVehicle
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: array
-              maxItems: 100
-              items:
-                $ref: '#/components/schemas/TelemetryMessage'
+              $ref: '#/components/schemas/VehicleCreate'
       responses:
-        '202':
-          description: Lote aceptado
+        '201':
+          description: Vehiculo creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '413':
-          description: Payload demasiado grande
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
+
+  /rules:
+    get:
+      tags: [Rules]
+      summary: Listar reglas registradas localmente
+      operationId: listRules
+      parameters:
+        - name: vehicleId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventType
+          in: query
+          schema:
+            $ref: '#/components/schemas/EventType'
+      responses:
+        '200':
+          description: Reglas registradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RulePage'
+    post:
+      tags: [Rules]
+      summary: Crear regla
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleCreate'
+      responses:
+        '201':
+          description: Regla creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
 components:
   parameters:
     CorrelationId:
       name: x-correlation-id
       in: header
+      required: false
       schema:
         type: string
-        format: uuid
-    IdempotencyKey:
-      name: Idempotency-Key
-      in: header
-      schema:
-        type: string
-        maxLength: 64
-    Cursor:
-      name: cursor
-      in: query
-      schema:
-        type: string
-    Limit:
-      name: limit
-      in: query
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 200
-        default: 50
+      description: Identificador de correlacion opcional. Si no se envia, la API genera uno.
 
   responses:
     BadRequest:
       description: Solicitud invalida
       content:
-        application/problem+json:
+        application/json:
           schema:
-            $ref: '#/components/schemas/Problem'
-    Unauthorized:
-      description: No autenticado
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-    NotFound:
-      description: Recurso no encontrado
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-    Conflict:
-      description: Conflicto de concurrencia
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-    TooManyRequests:
-      description: Limite de tasa excedido
-      headers:
-        Retry-After:
-          schema:
-            type: integer
-    ServiceUnavailable:
-      description: Servicio degradado
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: CCS.Api.Emergency
+
+    ErrorResponse:
+      type: object
+      properties:
+        correlationId:
+          type: string
+        title:
+          type: string
+          example: Solicitud invalida
+        detail:
+          type: string
+
     EventType:
       type: string
       enum: [Panic, DriverDistress, UnplannedStop, OverSpeed, OutOfSchedule, TempOutOfRange, Accident, GeofenceExit, GeofenceEnter]
@@ -375,142 +288,126 @@ components:
 
     EmergencySignal:
       type: object
-      required: [deviceId, type, timestamp]
+      required: [deviceId, type, source, timestamp]
       properties:
         deviceId:
           type: string
-          maxLength: 100
         type:
           $ref: '#/components/schemas/EventType'
         source:
           type: string
-          enum: [PhysicalButton, MobileApp, AutoDetection]
-        reason:
-          type: string
-          maxLength: 200
         gps:
-          $ref: '#/components/schemas/Gps'
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Gps'
         timestamp:
           type: string
           format: date-time
+        reason:
+          type: string
+          nullable: true
 
     EmergencyAccepted:
       type: object
       properties:
         correlationId:
           type: string
-          format: uuid
         status:
           type: string
-          enum: [queued]
+          example: queued
         receivedAt:
           type: string
           format: date-time
 
-    Rule:
+    TelemetryMessage:
+      type: object
+      required: [deviceId, ts]
+      properties:
+        deviceId:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        gps:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Gps'
+        speedKmh:
+          type: number
+          nullable: true
+        temperatureC:
+          type: number
+          nullable: true
+        eventType:
+          type: string
+          default: telemetry
+
+    TelemetryAccepted:
+      type: object
+      properties:
+        status:
+          type: string
+          example: accepted
+        count:
+          type: integer
+        receivedAt:
+          type: string
+          format: date-time
+
+    OwnerCreate:
+      type: object
+      required: [documentType, documentNumber, fullName]
+      properties:
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phoneE164:
+          type: string
+          nullable: true
+
+    Owner:
       allOf:
-        - $ref: '#/components/schemas/RuleCreate'
+        - $ref: '#/components/schemas/OwnerCreate'
         - type: object
           properties:
-            ruleId:
-              type: string
-              format: uuid
             ownerId:
               type: string
               format: uuid
-            etag:
+            status:
               type: string
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
+              example: Active
 
-    RuleCreate:
+    VehicleCreate:
       type: object
-      required: [name, eventType, actions]
+      required: [ownerId, vehicleType, plate, deviceId]
       properties:
-        vehicleId:
-          type: string
-          format: uuid
-          nullable: true
-        name:
-          type: string
-          minLength: 3
-          maxLength: 200
-        eventType:
-          $ref: '#/components/schemas/EventType'
-        priority:
-          type: integer
-          minimum: 1
-          maximum: 5
-          default: 3
-        conditionJson:
-          type: string
-        isActive:
-          type: boolean
-          default: true
-        actions:
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/RuleAction'
-
-    RuleUpdate:
-      allOf:
-        - $ref: '#/components/schemas/RuleCreate'
-
-    RuleAction:
-      type: object
-      required: [actionType, targetType, targetReference]
-      properties:
-        actionType:
-          $ref: '#/components/schemas/ActionType'
-        targetType:
-          type: string
-          enum: [Owner, Driver, Authority, Custom]
-        targetReference:
-          type: string
-          maxLength: 500
-        order:
-          type: integer
-          minimum: 1
-          default: 1
-        isCritical:
-          type: boolean
-          default: false
-
-    RulePage:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Rule'
-        nextCursor:
-          type: string
-          nullable: true
-
-    Vehicle:
-      type: object
-      properties:
-        vehicleId:
-          type: string
-          format: uuid
         ownerId:
           type: string
           format: uuid
         vehicleType:
           type: string
-          enum: [Truck, Car, Motorcycle, Taxi, Bus]
         plate:
           type: string
         deviceId:
           type: string
-        status:
-          type: string
-          enum: [Active, Maintenance, Inactive]
+
+    Vehicle:
+      allOf:
+        - $ref: '#/components/schemas/VehicleCreate'
+        - type: object
+          properties:
+            vehicleId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              example: Active
 
     VehiclePage:
       type: object
@@ -523,139 +420,83 @@ components:
           type: string
           nullable: true
 
-    VehicleState:
+    RuleAction:
       type: object
+      required: [actionType, targetType, targetReference, order, isCritical]
       properties:
-        deviceId:
+        actionType:
+          $ref: '#/components/schemas/ActionType'
+        targetType:
           type: string
-        vehicleId:
+        targetReference:
           type: string
-          format: uuid
-        online:
+        order:
+          type: integer
+        isCritical:
           type: boolean
-        lastSeenAt:
-          type: string
-          format: date-time
-        gps:
-          $ref: '#/components/schemas/Gps'
-        speedKmh:
-          type: number
-        temperatureC:
-          type: number
-        engineStatus:
-          type: string
-          enum: [On, Off, Unknown]
 
-    Owner:
+    RuleCreate:
       type: object
+      required: [ownerId, name, eventType, priority, isActive, actions]
       properties:
         ownerId:
           type: string
           format: uuid
-        documentType:
-          type: string
-          enum: [CC, NIT, CE]
-        documentNumber:
-          type: string
-        fullName:
-          type: string
-        email:
-          type: string
-          format: email
-        phoneE164:
-          type: string
-        status:
-          type: string
-          enum: [Active, Suspended, Cancelled]
-
-    OwnerCreate:
-      type: object
-      required: [documentType, documentNumber, fullName]
-      properties:
-        documentType:
-          type: string
-          enum: [CC, NIT, CE]
-        documentNumber:
-          type: string
-          minLength: 4
-          maxLength: 50
-        fullName:
-          type: string
-          minLength: 3
-          maxLength: 200
-        email:
-          type: string
-          format: email
-        phoneE164:
-          type: string
-          pattern: '^\\+[1-9]\\d{6,14}$'
-
-    TelemetryMessage:
-      type: object
-      required: [deviceId, ts]
-      properties:
-        deviceId:
-          type: string
-        ts:
-          type: string
-          format: date-time
-        gps:
-          $ref: '#/components/schemas/Gps'
-        speedKmh:
-          type: number
-        headingDeg:
-          type: number
-        temperatureC:
-          type: number
-        engineStatus:
-          type: string
-          enum: [On, Off, Unknown]
-        fuelPct:
-          type: number
-          minimum: 0
-          maximum: 100
-        eventType:
-          type: string
-          default: telemetry
-
-    Problem:
-      type: object
-      properties:
-        type:
-          type: string
-          format: uri
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        instance:
-          type: string
-        correlationId:
+        vehicleId:
           type: string
           format: uuid
-        errors:
-          type: object
-          additionalProperties:
-            type: array
-            items:
-              type: string
+          nullable: true
+        name:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        priority:
+          type: integer
+        isActive:
+          type: boolean
+        actions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RuleAction'
 
-  securitySchemes:
-    oauth2:
-      type: oauth2
-      description: Microsoft Entra ID con Authorization Code + PKCE
-      flows:
-        authorizationCode:
-          authorizationUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
-          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
-          scopes:
-            emergency.write: Reportar emergencias
-            rules.read: Leer reglas
-            rules.write: Crear o modificar reglas
-            vehicles.read: Leer vehiculos
-            owners.admin: Administrar propietarios
-    mtls:
-      type: mutualTLS
-      description: mTLS para dispositivos IoT con certificado X.509
+    Rule:
+      allOf:
+        - $ref: '#/components/schemas/RuleCreate'
+        - type: object
+          properties:
+            ruleId:
+              type: string
+              format: uuid
+
+    RulePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+        nextCursor:
+          type: string
+          nullable: true
+
+    ActionRequest:
+      $ref: '#/components/schemas/RuleAction'
+
+    DispatchedAction:
+      type: object
+      properties:
+        correlationId:
+          type: string
+        deviceId:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionRequest'
+        context:
+          type: object
+        isCritical:
+          type: boolean

@@ -23,5 +23,24 @@ public class InMemoryActionPublisherTests
         Assert.Single(publisher.Published);
         Assert.Equal("corr-1", publisher.Published[0].CorrelationId);
     }
-}
 
+    [Fact]
+    public async Task PublishCriticalAsync_WhenCancellationIsRequested_ThrowsAndDoesNotStoreAction()
+    {
+        var publisher = new InMemoryActionPublisher();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        var action = new DispatchedAction(
+            "corr-1",
+            "DEV-001",
+            EventType.Panic,
+            [],
+            new { },
+            true);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            publisher.PublishCriticalAsync(action, cts.Token));
+
+        Assert.Empty(publisher.Published);
+    }
+}
