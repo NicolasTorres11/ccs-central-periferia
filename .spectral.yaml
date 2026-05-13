@@ -1,0 +1,25 @@
+extends: ["spectral:oas"]
+rules:
+  ccs-operation-tag-required:
+    description: Toda operacion debe tener al menos un tag
+    given: $.paths.*[get,post,put,patch,delete]
+    severity: error
+    then:
+      field: tags
+      function: truthy
+  ccs-operation-correlation-id:
+    description: Toda operacion POST debe aceptar header x-correlation-id
+    given: $.paths.*.post
+    severity: warn
+    then:
+      field: parameters
+      function: schema
+      functionOptions:
+        schema:
+          type: array
+          contains:
+            type: object
+            properties:
+              name:
+                const: x-correlation-id
+

@@ -1,0 +1,88 @@
+erDiagram
+  OWNER ||--o{ VEHICLE : owns
+  OWNER ||--o{ RULE : defines
+  OWNER ||--o{ EMERGENCY_CONTACT : has
+  VEHICLE ||--|| DEVICE : "equipped with"
+  VEHICLE ||--o{ RULE : "applies to"
+  RULE ||--|{ RULE_ACTION : "triggers"
+  RULE ||--o{ NOTIFICATION_LOG : "produces"
+  VEHICLE ||--o{ NOTIFICATION_LOG : "about"
+  AUTHORITY ||--o{ RULE_ACTION : "targets"
+
+  OWNER {
+    uniqueidentifier OwnerId PK
+    nvarchar DocumentNumber UK
+    nvarchar FullName
+    nvarchar Email
+    nvarchar PhoneE164
+    nvarchar Status
+  }
+
+  VEHICLE {
+    uniqueidentifier VehicleId PK
+    uniqueidentifier OwnerId FK
+    nvarchar VehicleType
+    nvarchar Plate UK
+    nvarchar DeviceId UK
+    nvarchar Status
+  }
+
+  DEVICE {
+    nvarchar DeviceId PK
+    uniqueidentifier VehicleId FK
+    nvarchar CertificateThumbprint
+    datetime LastSeenAt
+    bit IsCameraEnabled
+  }
+
+  RULE {
+    uniqueidentifier RuleId PK
+    uniqueidentifier OwnerId FK
+    uniqueidentifier VehicleId FK
+    nvarchar EventType
+    nvarchar ConditionJson
+    int Priority
+    bit IsActive
+  }
+
+  RULE_ACTION {
+    uniqueidentifier RuleActionId PK
+    uniqueidentifier RuleId FK
+    nvarchar ActionType
+    nvarchar TargetReference
+    bit IsCritical
+  }
+
+  EMERGENCY_CONTACT {
+    uniqueidentifier ContactId PK
+    uniqueidentifier OwnerId FK
+    nvarchar PhoneE164
+    int Priority
+  }
+
+  AUTHORITY {
+    uniqueidentifier AuthorityId PK
+    nvarchar Type
+    nvarchar Region
+    nvarchar WebhookUrl
+  }
+
+  AUDIT_LOG {
+    bigint AuditId PK
+    nvarchar EntityType
+    nvarchar EntityId
+    nvarchar Action
+    datetime ChangedAt
+    uniqueidentifier CorrelationId
+  }
+
+  NOTIFICATION_LOG {
+    uniqueidentifier NotificationId PK
+    uniqueidentifier CorrelationId
+    uniqueidentifier RuleId FK
+    uniqueidentifier VehicleId FK
+    nvarchar ChannelType
+    nvarchar Status
+    int LatencyMs
+  }
+

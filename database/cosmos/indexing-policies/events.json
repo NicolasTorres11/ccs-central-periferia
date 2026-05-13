@@ -1,0 +1,21 @@
+{
+  "indexingMode": "consistent",
+  "automatic": true,
+  "includedPaths": [
+    { "path": "/ts/?" },
+    { "path": "/eventType/?" },
+    { "path": "/severity/?" },
+    { "path": "/ownerId/?" },
+    { "path": "/correlationId/?" }
+  ],
+  "excludedPaths": [
+    { "path": "/*" }
+  ],
+  "compositeIndexes": [
+    [
+      { "path": "/deviceId", "order": "ascending" },
+      { "path": "/ts", "order": "descending" }
+    ]
+  ]
+}
+

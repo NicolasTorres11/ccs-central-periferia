@@ -1,0 +1,39 @@
+# Build output
+bin/
+obj/
+out/
+publish/
+
+# .NET
+TestResults/
+coverage-report/
+*.user
+*.suo
+*.rsuser
+
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+local.settings.json
+appsettings.Development.json
+
+# Internal working material
+skills/
+.work/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Azure Functions
+artifacts/
+
+# Packages and tools
+node_modules/
+.dotnet/
