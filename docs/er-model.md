@@ -21,31 +21,11 @@
 - `AuditLog`: auditoria de cambios.
 - `NotificationLog`: registro de notificaciones enviadas.
 
-## Artefacto de Diagramacion
-El modelo ER oficial para diagramacion esta en formato DBML:
-
-```text
-database/model/ccs-er-model.dbml
-```
-
-Este archivo esta preparado para copiarse directamente en https://dbdiagram.io/.
-
-Tambien existe una version auxiliar Mermaid en `docs/diagrams/er-model.mmd`, pero el artefacto principal del entregable es el DBML.
-
 ## Diagrama ER
 
-```mermaid
-erDiagram
-  OWNER ||--o{ VEHICLE : owns
-  OWNER ||--o{ RULE : defines
-  OWNER ||--o{ EMERGENCY_CONTACT : has
-  VEHICLE ||--|| DEVICE : "equipped with"
-  VEHICLE ||--o{ RULE : "applies to"
-  RULE ||--|{ RULE_ACTION : "triggers"
-  RULE ||--o{ NOTIFICATION_LOG : "produces"
-  VEHICLE ||--o{ NOTIFICATION_LOG : "about"
-  AUTHORITY ||--o{ RULE_ACTION : "targets"
-```
+![Modelo Entidad Relacion — Central CCS (Azure SQL)](../architectures/er-model-ccs-periferia.png)
+
+El modelo DBML fuente esta en `database/model/ccs-er-model.dbml` (abrir en dbdiagram.io para edicion).
 
 ## Escalabilidad de Base de Datos
 - SQL usa indices sobre `OwnerId`, `VehicleId`, `EventType`, `CorrelationId` y fechas operativas.
