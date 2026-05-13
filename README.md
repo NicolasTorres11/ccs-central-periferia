@@ -6,10 +6,11 @@ Solucion tecnica para la central de seguimiento vehicular CCS. El repositorio in
 
 1. Revisar la arquitectura en `docs/architecture.md` y los flujos en `docs/sequence-diagrams.md`.
 2. Revisar el despliegue propuesto en `docs/deployment-diagram.md`.
-3. Abrir el modelo ER de `database/model/ccs-er-model.dbml` en dbdiagram.io.
-4. Revisar el contrato local de APIs en `docs/openapi.yaml`.
-5. Validar la solucion con `dotnet test CCS.slnx --disable-build-servers -m:1`.
-6. Ejecutar las APIs locales si se desea probar manualmente los endpoints.
+3. Revisar la trazabilidad de entregables en `docs/entregables.md`.
+4. Abrir el modelo ER de `database/model/ccs-er-model.dbml` en dbdiagram.io.
+5. Revisar el contrato local de APIs en `docs/openapi.yaml`.
+6. Validar la solucion con `dotnet test CCS.slnx --disable-build-servers -m:1`.
+7. Ejecutar las APIs locales si se desea probar manualmente los endpoints.
 
 Este repositorio no despliega recursos en Azure. Los Bicep, scripts SQL, politicas Cosmos y scripts Redis quedan como artefactos tecnicos revisables para la prueba.
 
@@ -139,6 +140,7 @@ Para ver los comandos de referencia sin ejecutar despliegues:
 - `docs/architecture.md`
 - `docs/availability-scalability.md`
 - `docs/deployment-diagram.md`
+- `docs/entregables.md`
 - `docs/sequence-diagrams.md`
 - `docs/er-model.md`
 - `docs/functions.md`

@@ -16,7 +16,7 @@ sequenceDiagram
   participant SR as SignalR
   participant WH as Webhook Autoridad
 
-  U->>APIM: POST /v1/emergency
+  U->>APIM: POST /emergency
   APIM->>E: Request validado
   E->>R: GET rules:{deviceId}:panic
   R-->>E: Acciones activas
@@ -86,11 +86,10 @@ sequenceDiagram
   participant SQL as Azure SQL
   participant R as Redis
 
-  U->>APIM: POST/PUT /v1/rules
+  U->>APIM: POST /rules
   APIM->>A: Request autenticado
   A->>SQL: Validar ownership + guardar regla
   SQL-->>A: Commit OK
   A->>R: Actualizar/invalidate rules:{deviceId}
   A-->>U: 201/200
 ```
-
