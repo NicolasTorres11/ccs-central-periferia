@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CCS.Api.Admin/CCS.Api.Admin.csproj" />
+    <Project Path="src/CCS.Api.Emergency/CCS.Api.Emergency.csproj" />
+    <Project Path="src/CCS.Api.Telemetry/CCS.Api.Telemetry.csproj" />
+    <Project Path="src/CCS.Application/CCS.Application.csproj" />
+    <Project Path="src/CCS.Domain/CCS.Domain.csproj" />
+    <Project Path="src/CCS.Functions.Dispatcher/CCS.Functions.Dispatcher.csproj" />
+    <Project Path="src/CCS.Functions.Ingestion/CCS.Functions.Ingestion.csproj" />
+    <Project Path="src/CCS.Functions.Rules/CCS.Functions.Rules.csproj" />
+    <Project Path="src/CCS.Infrastructure/CCS.Infrastructure.csproj" />
+    <Project Path="src/CCS.Shared/CCS.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CCS.Api.Admin.Tests/CCS.Api.Admin.Tests.csproj" />
+    <Project Path="tests/CCS.Api.Emergency.Tests/CCS.Api.Emergency.Tests.csproj" />
+    <Project Path="tests/CCS.Api.Telemetry.Tests/CCS.Api.Telemetry.Tests.csproj" />
+    <Project Path="tests/CCS.Application.Tests/CCS.Application.Tests.csproj" />
+    <Project Path="tests/CCS.Domain.Tests/CCS.Domain.Tests.csproj" />
+    <Project Path="tests/CCS.Functions.Dispatcher.Tests/CCS.Functions.Dispatcher.Tests.csproj" />
+    <Project Path="tests/CCS.Functions.Ingestion.Tests/CCS.Functions.Ingestion.Tests.csproj" />
+    <Project Path="tests/CCS.Functions.Rules.Tests/CCS.Functions.Rules.Tests.csproj" />
+    <Project Path="tests/CCS.Infrastructure.Tests/CCS.Infrastructure.Tests.csproj" />
+    <Project Path="tests/CCS.LoadTests/CCS.LoadTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,123 @@
+Table Owner {
+  OwnerId uniqueidentifier [pk]
+  DocumentType nvarchar(20)
+  DocumentNumber nvarchar(50) [unique, not null]
+  FullName nvarchar(200) [not null]
+  Email nvarchar(255)
+  PhoneE164 nvarchar(20)
+  Status nvarchar(20) [not null, default: 'Active']
+  CreatedAt datetime2 [default: `sysutcdatetime()`]
+  UpdatedAt datetime2
+}
+
+Table Vehicle {
+  VehicleId uniqueidentifier [pk]
+  OwnerId uniqueidentifier [ref: > Owner.OwnerId, not null]
+  VehicleType nvarchar(20) [not null]
+  Plate nvarchar(20) [unique, not null]
+  Brand nvarchar(50)
+  Model nvarchar(50)
+  Year int
+  DeviceId nvarchar(100) [unique, not null]
+  Status nvarchar(20) [not null, default: 'Active']
+  EnrolledAt datetime2
+
+  Indexes {
+    OwnerId
+    VehicleType
+  }
+}
+
+Table Device {
+  DeviceId nvarchar(100) [pk]
+  VehicleId uniqueidentifier [ref: - Vehicle.VehicleId, not null]
+  CertificateThumbprint nvarchar(100)
+  FirmwareVersion nvarchar(50)
+  LastSeenAt datetime2
+  IsCameraEnabled bit [default: 0]
+  Status nvarchar(20) [default: 'Provisioned']
+}
+
+Table Rule {
+  RuleId uniqueidentifier [pk]
+  OwnerId uniqueidentifier [ref: > Owner.OwnerId, not null]
+  VehicleId uniqueidentifier [ref: > Vehicle.VehicleId]
+  Name nvarchar(200) [not null]
+  EventType nvarchar(50) [not null]
+  ConditionJson nvarchar(max)
+  Priority int [default: 3]
+  IsActive bit [default: 1]
+  CreatedAt datetime2 [default: `sysutcdatetime()`]
+  UpdatedAt datetime2
+
+  Indexes {
+    (OwnerId, IsActive)
+    (VehicleId, EventType, IsActive)
+  }
+}
+
+Table RuleAction {
+  RuleActionId uniqueidentifier [pk]
+  RuleId uniqueidentifier [ref: > Rule.RuleId, not null]
+  ActionType nvarchar(50) [not null]
+  TargetType nvarchar(50)
+  TargetReference nvarchar(500)
+  Order int [default: 1]
+  IsCritical bit [default: 0]
+}
+
+Table EmergencyContact {
+  ContactId uniqueidentifier [pk]
+  OwnerId uniqueidentifier [ref: > Owner.OwnerId, not null]
+  ContactName nvarchar(200)
+  Relationship nvarchar(50)
+  PhoneE164 nvarchar(20)
+  Email nvarchar(255)
+  Priority int [default: 1]
+}
+
+Table Authority {
+  AuthorityId uniqueidentifier [pk]
+  Name nvarchar(200) [not null]
+  Type nvarchar(50)
+  Region nvarchar(100)
+  WebhookUrl nvarchar(500)
+  PhoneE164 nvarchar(20)
+  SecretKeyVaultRef nvarchar(200)
+}
+
+Table AuditLog {
+  AuditId bigint [pk, increment]
+  EntityType nvarchar(50)
+  EntityId nvarchar(100)
+  Action nvarchar(20)
+  ChangedBy nvarchar(200)
+  ChangedAt datetime2 [default: `sysutcdatetime()`]
+  OldValueJson nvarchar(max)
+  NewValueJson nvarchar(max)
+  CorrelationId uniqueidentifier
+
+  Indexes {
+    (EntityType, EntityId)
+    ChangedAt
+  }
+}
+
+Table NotificationLog {
+  NotificationId uniqueidentifier [pk]
+  CorrelationId uniqueidentifier [not null]
+  RuleId uniqueidentifier [ref: > Rule.RuleId]
+  VehicleId uniqueidentifier [ref: > Vehicle.VehicleId]
+  ChannelType nvarchar(50)
+  Target nvarchar(500)
+  Status nvarchar(20)
+  LatencyMs int
+  SentAt datetime2 [default: `sysutcdatetime()`]
+  ErrorDetail nvarchar(max)
+
+  Indexes {
+    CorrelationId
+    (VehicleId, SentAt)
+  }
+}
+

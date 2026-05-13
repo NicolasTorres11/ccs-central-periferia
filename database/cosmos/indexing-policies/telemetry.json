@@ -1,0 +1,14 @@
+{
+  "indexingMode": "consistent",
+  "automatic": true,
+  "includedPaths": [
+    { "path": "/ts/?" },
+    { "path": "/eventType/?" },
+    { "path": "/deviceId/?" }
+  ],
+  "excludedPaths": [
+    { "path": "/*" },
+    { "path": "/gpsRaw/*" }
+  ]
+}
+

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\CCS.Shared\CCS.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

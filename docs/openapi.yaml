@@ -1,0 +1,524 @@
+openapi: 3.0.3
+info:
+  title: CCS Central - Contratos locales
+  version: 1.0.0
+  description: >
+    Contrato OpenAPI documental para las APIs locales del entregable CCS.
+    Este archivo no ejecuta Functions, no publica recursos y no depende de una
+    plataforma externa. Sirve para revisar endpoints, payloads y respuestas.
+
+servers:
+  - url: http://localhost:5101
+    description: API local de emergencias
+  - url: http://localhost:5102
+    description: API local de telemetria
+  - url: http://localhost:5103
+    description: API local de administracion
+
+tags:
+  - name: Health
+  - name: Emergency
+  - name: Telemetry
+  - name: Owners
+  - name: Vehicles
+  - name: Rules
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Estado de salud de la API local
+      description: Disponible en cada API local.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Servicio saludable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /emergency:
+    post:
+      tags: [Emergency]
+      summary: Reportar una emergencia o senal de panico
+      operationId: reportEmergency
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencySignal'
+            examples:
+              panic:
+                value:
+                  deviceId: DEV-SMOKE
+                  type: Panic
+                  source: Button
+                  gps:
+                    lat: 4.65
+                    lng: -74.1
+                  timestamp: '2026-05-13T12:00:00Z'
+                  reason: panic-button
+      responses:
+        '202':
+          description: Emergencia aceptada para despacho
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /debug/dispatched-actions:
+    get:
+      tags: [Emergency]
+      summary: Consultar acciones despachadas en memoria
+      description: Endpoint local de depuracion para validar el flujo sin Azure Service Bus.
+      operationId: listDebugDispatchedActions
+      responses:
+        '200':
+          description: Acciones publicadas en memoria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DispatchedAction'
+
+  /telemetry/ingest:
+    post:
+      tags: [Telemetry]
+      summary: Ingestar lote de telemetria por HTTP
+      operationId: ingestTelemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/TelemetryMessage'
+      responses:
+        '202':
+          description: Lote aceptado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /debug/telemetry:
+    get:
+      tags: [Telemetry]
+      summary: Consultar telemetria recibida en memoria
+      description: Endpoint local de depuracion para validar la ingesta sin Event Hubs ni Cosmos DB.
+      operationId: listDebugTelemetry
+      responses:
+        '200':
+          description: Mensajes de telemetria almacenados en memoria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryMessage'
+
+  /owners:
+    get:
+      tags: [Owners]
+      summary: Listar propietarios registrados localmente
+      operationId: listOwners
+      responses:
+        '200':
+          description: Propietarios registrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerPage'
+    post:
+      tags: [Owners]
+      summary: Crear propietario
+      operationId: createOwner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnerCreate'
+      responses:
+        '201':
+          description: Propietario creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Owner'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /vehicles:
+    get:
+      tags: [Vehicles]
+      summary: Listar vehiculos registrados localmente
+      operationId: listVehicles
+      responses:
+        '200':
+          description: Vehiculos registrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiclePage'
+    post:
+      tags: [Vehicles]
+      summary: Crear vehiculo
+      operationId: createVehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleCreate'
+      responses:
+        '201':
+          description: Vehiculo creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /rules:
+    get:
+      tags: [Rules]
+      summary: Listar reglas registradas localmente
+      operationId: listRules
+      parameters:
+        - name: vehicleId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: eventType
+          in: query
+          schema:
+            $ref: '#/components/schemas/EventType'
+      responses:
+        '200':
+          description: Reglas registradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RulePage'
+    post:
+      tags: [Rules]
+      summary: Crear regla
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleCreate'
+      responses:
+        '201':
+          description: Regla creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  parameters:
+    CorrelationId:
+      name: x-correlation-id
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Identificador de correlacion opcional. Si no se envia, la API genera uno.
+
+  responses:
+    BadRequest:
+      description: Solicitud invalida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        service:
+          type: string
+          example: CCS.Api.Emergency
+
+    ErrorResponse:
+      type: object
+      properties:
+        correlationId:
+          type: string
+        title:
+          type: string
+          example: Solicitud invalida
+        detail:
+          type: string
+
+    EventType:
+      type: string
+      enum: [Panic, DriverDistress, UnplannedStop, OverSpeed, OutOfSchedule, TempOutOfRange, Accident, GeofenceExit, GeofenceEnter]
+
+    ActionType:
+      type: string
+      enum: [Sms, Email, Push, AuthorityCall, WebhookOwner, BroadcastDashboard]
+
+    Gps:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    EmergencySignal:
+      type: object
+      required: [deviceId, type, source, timestamp]
+      properties:
+        deviceId:
+          type: string
+        type:
+          $ref: '#/components/schemas/EventType'
+        source:
+          type: string
+        gps:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Gps'
+        timestamp:
+          type: string
+          format: date-time
+        reason:
+          type: string
+          nullable: true
+
+    EmergencyAccepted:
+      type: object
+      properties:
+        correlationId:
+          type: string
+        status:
+          type: string
+          example: queued
+        receivedAt:
+          type: string
+          format: date-time
+
+    TelemetryMessage:
+      type: object
+      required: [deviceId, ts]
+      properties:
+        deviceId:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        gps:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Gps'
+        speedKmh:
+          type: number
+          nullable: true
+        temperatureC:
+          type: number
+          nullable: true
+        eventType:
+          type: string
+          default: telemetry
+
+    TelemetryAccepted:
+      type: object
+      properties:
+        status:
+          type: string
+          example: accepted
+        count:
+          type: integer
+        receivedAt:
+          type: string
+          format: date-time
+
+    OwnerCreate:
+      type: object
+      required: [documentType, documentNumber, fullName]
+      properties:
+        documentType:
+          type: string
+        documentNumber:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          nullable: true
+        phoneE164:
+          type: string
+          nullable: true
+
+    Owner:
+      allOf:
+        - $ref: '#/components/schemas/OwnerCreate'
+        - type: object
+          properties:
+            ownerId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              example: Active
+
+    OwnerPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Owner'
+        nextCursor:
+          type: string
+          nullable: true
+
+    VehicleCreate:
+      type: object
+      required: [ownerId, vehicleType, plate, deviceId]
+      properties:
+        ownerId:
+          type: string
+          format: uuid
+        vehicleType:
+          type: string
+        plate:
+          type: string
+        deviceId:
+          type: string
+
+    Vehicle:
+      allOf:
+        - $ref: '#/components/schemas/VehicleCreate'
+        - type: object
+          properties:
+            vehicleId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              example: Active
+
+    VehiclePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Vehicle'
+        nextCursor:
+          type: string
+          nullable: true
+
+    RuleAction:
+      type: object
+      required: [actionType, targetType, targetReference, order, isCritical]
+      properties:
+        actionType:
+          $ref: '#/components/schemas/ActionType'
+        targetType:
+          type: string
+        targetReference:
+          type: string
+        order:
+          type: integer
+        isCritical:
+          type: boolean
+
+    RuleCreate:
+      type: object
+      required: [ownerId, name, eventType, priority, isActive, actions]
+      properties:
+        ownerId:
+          type: string
+          format: uuid
+        vehicleId:
+          type: string
+          format: uuid
+          nullable: true
+        name:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        priority:
+          type: integer
+        isActive:
+          type: boolean
+        actions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RuleAction'
+
+    Rule:
+      allOf:
+        - $ref: '#/components/schemas/RuleCreate'
+        - type: object
+          properties:
+            ruleId:
+              type: string
+              format: uuid
+
+    RulePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rule'
+        nextCursor:
+          type: string
+          nullable: true
+
+    ActionRequest:
+      $ref: '#/components/schemas/RuleAction'
+
+    DispatchedAction:
+      type: object
+      properties:
+        correlationId:
+          type: string
+        deviceId:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionRequest'
+        context:
+          type: object
+        isCritical:
+          type: boolean
