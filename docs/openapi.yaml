@@ -129,6 +129,17 @@ paths:
                   $ref: '#/components/schemas/TelemetryMessage'
 
   /owners:
+    get:
+      tags: [Owners]
+      summary: Listar propietarios registrados localmente
+      operationId: listOwners
+      responses:
+        '200':
+          description: Propietarios registrados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnerPage'
     post:
       tags: [Owners]
       summary: Crear propietario
@@ -382,6 +393,17 @@ components:
             status:
               type: string
               example: Active
+
+    OwnerPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Owner'
+        nextCursor:
+          type: string
+          nullable: true
 
     VehicleCreate:
       type: object

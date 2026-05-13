@@ -8,7 +8,7 @@ Este documento resume donde se responde cada punto solicitado en la prueba tecni
 | 2 | Justificar componentes definidos y explicar disponibilidad/escalabilidad a nivel de aplicacion. | Cubierto | `docs/architecture.md`, `docs/availability-scalability.md`, `docs/decisions/ADR-001-emergency-hot-path.md`, `docs/decisions/ADR-002-data-storage-split.md` |
 | 3 | Modelo entidad/relacion y explicacion de escalabilidad a nivel de base de datos. | Cubierto | `docs/er-model.md`, `database/model/ccs-er-model.dbml`, `docs/diagrams/er-model.mmd` |
 | 4 | Scripts de base de datos. | Cubierto | `database/sql/00_create_database.sql`, `database/sql/01_schema.sql`, `database/sql/02_indexes.sql`, `database/sql/03_partitioning.sql`, `database/sql/04_seed_catalogs.sql`, `database/sql/05_security.sql`, `database/cosmos/*`, `database/redis/*` |
-| 5 | Codigo fuente, tests automaticos y code coverage mayor a 50%. | Cubierto | `src/`, `tests/`, `coverlet.runsettings`, `docs/test-coverage.md` |
+| 5 | Codigo fuente, tests automaticos y code coverage mayor a 50%. | Cubierto | `src/`, `tests/`, `tests/CCS.LoadTests`, `coverlet.runsettings`, `docs/test-coverage.md` |
 | 6 | Instrucciones de como ejecutar la solucion. | Cubierto | `README.md`, `scripts/smoke-test-emergency.sh`, `scripts/bootstrap-local.sh`, `scripts/apply-sql.sh`, `scripts/deploy-infra.sh` |
 | 7 | Documentacion de servicios en OpenAPI 3.0 o superior. | Cubierto | `docs/openapi.yaml` con `openapi: 3.0.3` |
 

@@ -14,6 +14,8 @@ var app = builder.Build();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "CCS.Api.Admin" }));
 
+app.MapGet("/owners", (AdminStore store) => Results.Ok(new { items = store.Owners, nextCursor = (string?)null }));
+
 app.MapPost("/owners", (OwnerCreateRequest request, AdminStore store) =>
 {
     if (string.IsNullOrWhiteSpace(request.DocumentNumber) || string.IsNullOrWhiteSpace(request.FullName))

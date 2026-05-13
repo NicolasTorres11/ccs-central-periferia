@@ -21,5 +21,6 @@
     <Project Path="tests/CCS.Functions.Ingestion.Tests/CCS.Functions.Ingestion.Tests.csproj" />
     <Project Path="tests/CCS.Functions.Rules.Tests/CCS.Functions.Rules.Tests.csproj" />
     <Project Path="tests/CCS.Infrastructure.Tests/CCS.Infrastructure.Tests.csproj" />
+    <Project Path="tests/CCS.LoadTests/CCS.LoadTests.csproj" />
   </Folder>
 </Solution>

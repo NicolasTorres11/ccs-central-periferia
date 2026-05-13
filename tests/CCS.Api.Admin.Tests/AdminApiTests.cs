@@ -98,6 +98,30 @@ public sealed class AdminApiTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
+    public async Task GetOwners_ReturnsCreatedOwners()
+    {
+        var client = factory.CreateClient();
+
+        using var ownerResponse = await client.PostAsync("/owners", Json("""
+            {
+              "documentType": "CC",
+              "documentNumber": "987654321",
+              "fullName": "Propietario Consulta",
+              "email": "consulta@example.com",
+              "phoneE164": "+573002222222"
+            }
+            """));
+
+        using var response = await client.GetAsync("/owners");
+        var body = JsonNode.Parse(await response.Content.ReadAsStringAsync())!;
+
+        Assert.Equal(HttpStatusCode.Created, ownerResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(body["items"]!.AsArray(), item =>
+            item?["documentNumber"]?.GetValue<string>() == "987654321");
+    }
+
+    [Fact]
     public async Task PostVehicle_WhenRequiredFieldsAreMissing_ReturnsBadRequest()
     {
         var client = factory.CreateClient();

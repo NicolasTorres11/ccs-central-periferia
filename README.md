@@ -28,6 +28,7 @@ scripts/    Scripts auxiliares locales.
 ## Alcance local
 
 - Las APIs usan almacenamiento en memoria para facilitar la validacion local.
+- La persistencia objetivo esta documentada en `database/`, `infra/modules/data.bicep` y `docs/er-model.md`; los adaptadores locales actuales son in-memory para no requerir Azure ni SQL Server durante la revision.
 - Los proyectos `CCS.Functions.*` simulan responsabilidades de Functions como clases .NET testeables.
 - `docs/openapi.yaml` es un contrato documental local; no ejecuta Functions ni publica servicios.
 - `scripts/deploy-infra.sh` solo imprime comandos de referencia para Bicep.
@@ -146,3 +147,4 @@ Para ver los comandos de referencia sin ejecutar despliegues:
 - `docs/functions.md`
 - `docs/openapi.yaml`
 - `docs/test-coverage.md`
+- `docs/load-tests.md`
